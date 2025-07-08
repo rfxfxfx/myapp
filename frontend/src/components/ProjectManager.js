@@ -54,7 +54,7 @@ const ProjectManager = ({ currentProject, onLoadProject, onNewProject }) => {
   };
 
   const deleteProject = async (projectId) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!window.confirm('Are you sure you want to delete this project?')) return;
 
     try {
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/projects/${projectId}`, {
