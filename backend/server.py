@@ -9,7 +9,10 @@ from pymongo import MongoClient
 import uuid
 import base64
 import asyncio
-from emergentintegrations.llm.gemeni.image_generation import GeminiImageGeneration
+import google.generativeai as genai
+from PIL import Image
+import io
+import requests
 
 load_dotenv()
 
@@ -34,7 +37,7 @@ projects_collection = db.projects
 logos_collection = db.logos
 
 # Initialize Gemini AI
-image_gen = GeminiImageGeneration(api_key=GEMINI_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
 
 # Pydantic models
 class WebsiteProject(BaseModel):
@@ -122,19 +125,25 @@ async def delete_project(project_id: str):
 @app.post("/api/generate-image")
 async def generate_image(request: ImageGenerationRequest):
     try:
-        images = await image_gen.generate_images(
-            prompt=request.prompt,
-            model="imagen-3.0-generate-002",
-            number_of_images=request.count
-        )
+        # Use the Gemini model for image generation
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Convert images to base64 for web display
-        image_urls = []
-        for i, image_bytes in enumerate(images):
-            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-            image_urls.append(f"data:image/png;base64,{base64_image}")
+        # Generate images based on the prompt
+        images = []
+        for _ in range(request.count):
+            response = model.generate_content(
+                request.prompt,
+                generation_config={"response_mime_type": "image/png"}
+            )
+            
+            # Extract image data from response
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    image_bytes = part.inline_data.data
+                    base64_image = base64.b64encode(image_bytes).decode('utf-8')
+                    images.append(f"data:image/png;base64,{base64_image}")
         
-        return {"images": image_urls}
+        return {"images": images}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image generation failed: {str(e)}")
 
@@ -152,19 +161,25 @@ async def generate_logo(request: LogoGenerationRequest):
             prompt += f" suitable for {request.industry} industry"
         prompt += ", clean background, high quality, professional design"
         
-        images = await image_gen.generate_images(
-            prompt=prompt,
-            model="imagen-3.0-generate-002",
-            number_of_images=4
-        )
+        # Use the Gemini model for logo generation
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # Convert images to base64 for web display
-        logo_variations = []
-        for i, image_bytes in enumerate(images):
-            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-            logo_variations.append(f"data:image/png;base64,{base64_image}")
+        # Generate logos based on the prompt
+        logos = []
+        for _ in range(4):  # Generate 4 logo variations
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "image/png"}
+            )
+            
+            # Extract image data from response
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    image_bytes = part.inline_data.data
+                    base64_image = base64.b64encode(image_bytes).decode('utf-8')
+                    logos.append(f"data:image/png;base64,{base64_image}")
         
-        return {"logos": logo_variations, "prompt": prompt}
+        return {"logos": logos, "prompt": prompt}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Logo generation failed: {str(e)}")
 
