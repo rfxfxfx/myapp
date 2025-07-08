@@ -43,6 +43,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Image Generation API returns 500 Internal Server Error. Issue appears to be with the Gemini API integration. The API key might be invalid or the emergentintegrations library might have issues."
+      - working: false
+        agent: "testing"
+        comment: "Further investigation shows that the emergentintegrations library is throwing a ValueError: 'Missing key inputs argument! To use the Google AI API, provide (`api_key`) arguments.' This suggests the API key is not being properly passed to the Google Generative AI client."
 
   - task: "Logo Generation API"
     implemented: true
@@ -58,6 +61,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Logo Generation API returns 500 Internal Server Error. Issue appears to be with the Gemini API integration. The API key might be invalid or the emergentintegrations library might have issues."
+      - working: false
+        agent: "testing"
+        comment: "Same issue as with the Image Generation API. The emergentintegrations library is not properly initializing the Google Generative AI client with the provided API key."
 
   - task: "Logo Storage APIs"
     implemented: true
@@ -90,7 +96,7 @@ frontend:
 metadata:
   created_by: "testing_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: false
 
 test_plan:
@@ -108,3 +114,5 @@ agent_communication:
     message: "Starting backend API testing for AI Website Builder"
   - agent: "testing"
     message: "Completed initial testing of backend APIs. Health Check, Website Project Management, and Logo Storage APIs are working correctly. However, AI Image Generation and Logo Generation APIs are failing with 500 Internal Server Error. The issue appears to be with the Gemini API integration. The API key might be invalid or the emergentintegrations library might have issues."
+  - agent: "testing"
+    message: "Further investigation reveals that the emergentintegrations library is throwing a ValueError: 'Missing key inputs argument! To use the Google AI API, provide (`api_key`) arguments.' This suggests the API key is not being properly passed to the Google Generative AI client. The library requires the API key to be passed in a specific way, and the current implementation in server.py might not be doing this correctly. Based on research, the recommended approach is to use the google-generativeai library directly with proper configuration."
